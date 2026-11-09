@@ -156,15 +156,32 @@ def extract_dialogue_pages(table_dir, lang):
     return groups
 
 
+def _asset_path(v):
+    """f4 的 packed varint 数组是 UTF-8 资源路径的字节序列("Assets/...")。"""
+    if not isinstance(v, (bytes, bytearray)):
+        return ""
+    arr = unpack_packed(v)
+    if not arr or not all(0 < x < 256 for x in arr):
+        return ""
+    try:
+        s = bytes(arr).decode("utf-8")
+        return s if s.startswith(("Assets/", "assets/")) else ""
+    except UnicodeDecodeError:
+        return ""
+
+
 def extract_guildwar(table_dir, lang):
-    """Story(标题/段序列) -> Paragraph(文本)"""
+    """Story(标题/段序列) -> Paragraph(文本或演出占位)。
+    段落表实测:344 引用段中 109 段无文本、f4 为 Assets 视频路径 —— 是纯演出段,
+    按诚实原则输出占位行,让读者知道此处有视频而非静默缺失。"""
     paras = {}
     for r in flat_records(table_dir, "GuildwarStoryParagraphData.bytes"):
         pid = r.get(1)
         if not isinstance(pid, int):
             continue
-        t3 = lang_ref(r.get(3)) or lang_ref(r.get(2))
-        paras[pid] = (lang.get(t3) or "") if t3 is not None else ""
+        t3 = lang_ref(r.get(3)) or lang_ref(r.get(13))
+        txt = (lang.get(t3) or "") if t3 is not None else ""
+        paras[pid] = (txt, _asset_path(r.get(4)))
     stories = []
     for r in flat_records(table_dir, "GuildwarStoryData.bytes"):
         sid = r.get(1)
@@ -175,10 +192,13 @@ def extract_guildwar(table_dir, lang):
         title_id = lang_ref(r.get(3))
         lines = []
         for pid in seq:
-            txt = paras.get(pid, "")
+            txt, asset = paras.get(pid, ("", ""))
             if txt:
                 speaker, t = clean_text(txt)
                 lines.append({"id": pid, "speaker": speaker, "text": t})
+            else:
+                label = "〔演出片段%s〕" % ("：" + os.path.basename(asset) if asset else "")
+                lines.append({"id": pid, "speaker": None, "text": label})
         if lines:
             pre = r.get(5)
             stories.append({
