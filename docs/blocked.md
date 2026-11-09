@@ -125,3 +125,30 @@ ChessStoryData 的代号(pre/next)不需要接入成书。B3 关闭(无内容可
 **残余可能**:对 9,777 个 bundle 做内容抽样(解包看 TextAsset m_Name),
 但即使命中,全量定位仍需处理 44GB——手机端不可行,**不再尝试**。
 **PC 端仍是唯一解**:全量解包 44GB 后按 TextAsset 名索引。
+
+## B12 剧本通道终极确认(2026-11-09 APK+DLL+全量扫描,手机端终点)
+**在本轮取得的全部新证据**:
+
+1. **剧本引擎 = Utage ADV**(Assembly-CSharp.dll 内完整:AdvEngine/AdvScenarioPlayer/
+   AdvScenarioThread/AdvScenarioData)。
+2. **剧本路径**:`Assets/Utage/BuildResources/NewAVG_MainStory/CN_ChapterXX.xls`
+   (主线)、`MainStory/ChapterXX`、`Activity/ChapterXX`——Utage 的 xls 剧本源。
+3. **剧本下载器**:`Utage.WWWEx.LoadFromCacheOrDownloadAssetBundleAsync` ——
+   剧本以 AssetBundle 形式从服务器下载,缓存在 **Unity 的 Cache(Android 上为
+   /data/data/<包名>/cache/UnityCache,应用私有目录)**。
+4. **`.gf` = ZIP 包**(PK 头);清单 4,899 个 .gf 对应各类资源包;
+   已下载的 5 个是过场视频(TIME_Chapter_03_*.usm)。
+5. **44GB 全量/抽样扫描**(解密后搜 Utage 路径/ScenarioData/中文):
+   - 100–500KB:2,942 个全扫 → 关卡场景/Spine,0 剧本
+   - 0.5–2MB:3,876 个全扫 → 场景/角色模型,4 个命中全是表情标签
+   - 2–10MB:1,738 个全扫 → 角色模型/UI/粒子;61 个含剧本路径引用
+     (角色包引用剧本地址),零剧本本体
+   - >10MB:抽样 5 → 动画剪辑
+6. **catalog(58MB)/CopyAsset/Table** 均无剧本 Key(CN_Chapter/MainStory 0 处)。
+7. **现场抓取失败**:剧情播放时剧本只进内存与私有 UnityCache,外置目录零落盘
+   (播放期间新一轮 AOT 产物出现,证明进程在跑)。
+
+**结论(手机端终点,不可再推进)**:
+剧本 AssetBundle 只存在于私有 UnityCache / 服务端。无 root、无 PC 条件下
+无法取得。**解锁条件**:① root(读 UnityCache);② PC 客户端 + 全量解包;
+③ 等社区剧本文本数据源。
