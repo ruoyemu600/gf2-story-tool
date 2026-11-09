@@ -266,7 +266,7 @@ def main():
     if emails:
         secs = []
         for e in emails:
-            first = e["paras"][0]
+            first = next((x for x in e["paras"] if len(x) > 6), e["paras"][0])
             title = (first[:18] + "…") if len(first) > 18 else first
             secs.append((title, [{"speaker": None, "text": p} for p in e["paras"]]))
         vols.append(write_volume(args.out, "信件与报道(%d 篇)" % len(secs), secs,
