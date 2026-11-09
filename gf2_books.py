@@ -133,7 +133,29 @@ def write_epub(path, vol_title, sections):
         z.writestr("OEBPS/content.opf", "\n".join(opf))
 
 
+def unique_titles(secs):
+    """同卷内组名去重:重复时换该组次优行,仍重复则追加 ·2/·3。"""
+    seen, out = set(), []
+    for title, lines in secs:
+        base = title
+        if title in seen:
+            alt = next((l["text"].strip()[:18] for l in lines
+                        if len(l["text"].strip()) > 6
+                        and l["text"].strip()[:18] not in seen), None)
+            if alt:
+                title = alt
+            else:
+                n = 2
+                while "%s·%d" % (base, n) in seen:
+                    n += 1
+                title = "%s·%d" % (base, n)
+        seen.add(title)
+        out.append((title, lines))
+    return out
+
+
 def write_volume(out_dir, vol_label, sections, epub=True):
+    sections = unique_titles(sections)
     txt = ["# %s" % vol_label]
     for title, lines in sections:
         txt.append(section_txt(title, lines))
