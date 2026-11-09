@@ -260,6 +260,18 @@ def main():
         vols.append(write_volume(args.out, "公会战剧情 第%d期(%d 篇)" % (ch, len(ss)), secs, not args.no_epub,
                                  cover_spec=("GUILD WAR", "第 %d 期" % ch, "%d 篇 · 多分支" % len(ss))))
 
+    # ---- 信件/报道/日志(T6):每封一节 ----
+    emails = c.get("email", [])
+    if emails:
+        secs = []
+        for e in emails:
+            first = e["paras"][0]
+            title = (first[:18] + "…") if len(first) > 18 else first
+            secs.append((title, [{"speaker": None, "text": p} for p in e["paras"]]))
+        vols.append(write_volume(args.out, "信件与报道(%d 篇)" % len(secs), secs,
+                                 not args.no_epub,
+                                 cover_spec=("ARCHIVE", "信件与报道", "%d 篇 · 长文档案" % len(secs))))
+
     # ---- 支线家族(T1):每族一卷,按角色分节 ----
     FAM_LABEL = {"lobby": "大厅闲聊", "adjutant": "副官对话", "lounge": "休息室对话",
                  "behavior": "互动对话", "darkzone": "暗区对话"}

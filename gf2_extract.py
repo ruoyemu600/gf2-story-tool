@@ -293,6 +293,37 @@ def extract_simple_families(table_dir, lang):
     return out
 
 
+# ---------- T6:叙事长文(邮件/日志/论坛贴),从系统文本池人工确认后入书 ----------
+
+EMAIL_MIN = 120
+
+
+def _narrative(txt):
+    """叙事特征 >=2:对指挥官/引号/换行/第一人称——过滤纯公告。"""
+    return sum([("指挥官" in txt), ('"' in txt or "「" in txt or "“" in txt),
+                ("\n" in txt), ("我" in txt)]) >= 2
+
+
+def extract_emails(table_dir, lang):
+    """AvgContentData 中 >=120 字且带叙事特征的长文;每封一篇,段内换行拆行。"""
+    out = []
+    for r in flat_records(table_dir, "AvgContentData.bytes"):
+        lid = r.get(1)
+        if not isinstance(lid, int):
+            continue
+        t3, t2 = lang_ref(r.get(3)), lang_ref(r.get(2))
+        txt = (lang.get(t3) if t3 is not None else "") or (lang.get(t2) if t2 is not None else "")
+        if len(txt) < EMAIL_MIN or not _narrative(txt):
+            continue
+        _, clean = clean_text(txt)
+        paras = [p.strip() for p in clean.split("\n") if p.strip()]
+        if not paras:
+            continue
+        out.append({"id": lid, "paras": paras})
+    out.sort(key=lambda x: x["id"])
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--table", required=True)
@@ -314,6 +345,7 @@ def main():
     gw = extract_guildwar(args.table, lang)
     corpus["guildwar"] = {"stories": gw}
     corpus["simple"] = extract_simple_families(args.table, lang)
+    corpus["email"] = extract_emails(args.table, lang)
 
     with open(os.path.join(args.out, "corpus.json"), "w", encoding="utf-8") as fh:
         json.dump(corpus, fh, ensure_ascii=False, indent=1)
@@ -332,6 +364,8 @@ def main():
         "guildwar_lines": sum(len(s["lines"]) for s in gw),
         "simple": simple_stats,
         "simple_lines_total": sum(v["lines"] for v in simple_stats.values()),
+        "email_pieces": len(corpus["email"]),
+        "email_paras": sum(len(e["paras"]) for e in corpus["email"]),
     }
     with open(os.path.join(args.out, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
