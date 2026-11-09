@@ -42,11 +42,19 @@ def is_roster(lines):
 
 
 def group_title(lines, limit=18):
-    """组名:首个非占位行的摘要。"""
+    """组名:首个有信息量的行(跳过占位与 ≤6 字寒暄"嗯。""……"),
+    全短时退回最长行,不留空。"""
+    def brief(t):
+        return t[:limit] + "…" if len(t) > limit else t
+
     for l in lines:
         t = l["text"].strip()
-        if t and not any(p in t for p in PLACEHOLDER):
-            return (t[:limit] + "…") if len(t) > limit else t
+        if t and len(t) > 6 and not any(p in t for p in PLACEHOLDER):
+            return brief(t)
+    if lines:
+        longest = max((l["text"].strip() for l in lines), key=len, default="")
+        if longest:
+            return brief(longest)
     return "空"
 
 

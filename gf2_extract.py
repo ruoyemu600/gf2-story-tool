@@ -54,8 +54,13 @@ def clean_text(raw):
     else:
         m = SPEAKER_PLAIN_RE.match(raw)
         if m:
-            speaker = m.group(1).strip()
-            raw = raw[m.end():]
+            name = m.group(1).strip()
+            # {} 占位符不是说话人(动态填充的主角名另走保留策略)
+            if "{" in name or "}" in name:
+                m = None
+            else:
+                speaker = name
+                raw = raw[m.end():]
     txt = TAG_RE.sub("", raw).strip()
     return (speaker or None), txt
 
