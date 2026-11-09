@@ -75,3 +75,11 @@ P1 结果:ByGunId.f2 整值 100% 命中 `Avg3DPlotData`(274/272)——宿舍剧�
 - PC 版客户端(国际服)的 catalog 在安装目录,拿到后可精确列出 avg_*.bundle 并只搬那几个
 - 或 PC 上跑 GF2AssetBundleDecryption + 全量解包(44GB 在 PC 上可接受)
 - USM 字幕提取(exilium-tools 的 subtitle_extractor)只能覆盖 20 个过场视频,覆盖面小
+
+## B8 P3 wiki 反查不可行(2026-11-09)
+- gf2.wiki / exilium.wiki:不可达(DNS/网络)。
+- gf2.huijiwiki.com:403(反爬)。
+- wiki.biligame.com/gf2:可达,但 MediaWiki 搜索「剧情」仅 9 条,
+  且最相关页是 2021 年"一测首航测试"内容(与现代 8 章版本不符),无章节台词页。
+- gamekee:首页为 JS 外壳,无静态正文可抓。
+**结论**:P3 判据(每章 3 句独有长句)无法建立;等有可用 wiki 源或社区数据再重启。
