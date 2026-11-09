@@ -1,0 +1,16 @@
+# 游戏数据与产物 —— 绝不入库
+Table/
+out/
+upstream/
+
+# Python
+__pycache__/
+*.pyc
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store
+# 语言包 dump 是从游戏 Table 生成的产物,不入库
+lang_cn.jsonl
+*.jsonl

@@ -1,0 +1,15 @@
+NOTICE
+======
+
+本仓库只包含代码(解析器、提取器、成书器、文档)。
+
+不包含、不分发任何游戏数据:
+
+  - 《少女前线2:追放》(Girls' Frontline 2: Exilium)的一切素材 ——
+    剧情、角色、美术、音频 —— 著作权归散爆网络 / MICA Team 所有。
+  - `Table/`(游戏静态表)、`out/`(提取产物)均由使用者在本机自行获取与生成,
+    仅供个人学习研究,不得公开分发或商用。
+  - Table 格式(长度头 + protobuf)的判定来自开源工具
+    nijinekoyo/GF2AssetBundleDecryption 的公开源码。
+
+代码部分以 MIT 授权,见 LICENSE。
