@@ -15,11 +15,11 @@ import subprocess
 from xml.sax.saxutils import escape as esc
 
 COVER_W, COVER_H = 1200, 1800
-BG = "#121009"          # 近黑褐
-BRASS = "#b08d4f"       # 黄铜
-BRASS_DIM = "#7a6136"
-OLIVE = "#5a6540"       # 军绿
-PAPER = "#e8e2d0"
+BG = "#f5f0e5"          # 米白纸底
+BRASS = "#8a6d3b"       # 铜褐(唯一强调色)
+BRASS_DIM = "#b9ad95"
+OLIVE = "#5a6540"
+PAPER = "#262119"
 ROMAN = {1: "I", 2: "II", 3: "III", 4: "IV", 5: "V", 6: "VI", 7: "VII", 8: "VIII"}
 
 FAMILY_KICKER = {
@@ -70,70 +70,46 @@ def _corner(x, y, sx, sy):
 
 
 def cover_svg(kicker, title, sub, foot1, foot2):
-    size = _fit(title, 150, COVER_W - 260)
+    size = _fit(title, 150, COVER_W - 300)
     if len(title) > 10:
-        size = _fit(title, 92, COVER_W - 260)
-    k_size = _fit(kicker, 84, COVER_W - 320, spacing=14)
-    sub_size = _fit(sub, 28, COVER_W - 320, spacing=8) if sub else 28
+        size = _fit(title, 88, COVER_W - 300)
+    k_size = _fit(kicker, 76, COVER_W - 320, spacing=12)
     cx = COVER_W // 2
-    inner = 84
     parts = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="%d" viewBox="0 0 %d %d">'
         % (COVER_W, COVER_H, COVER_W, COVER_H),
-        '<defs><radialGradient id="vig" cx="0.5" cy="0.42" r="0.8">'
-        '<stop offset="0.5" stop-color="#000" stop-opacity="0"/>'
-        '<stop offset="1" stop-color="#000" stop-opacity="0.88"/></radialGradient>'
-        '<linearGradient id="spine" x1="0" y1="0" x2="0" y2="1">'
-        '<stop offset="0" stop-color="%s" stop-opacity="0.10"/>'
-        '<stop offset="0.5" stop-color="%s" stop-opacity="0.28"/>'
-        '<stop offset="1" stop-color="%s" stop-opacity="0.06"/></linearGradient></defs>'
-        % (OLIVE, BRASS_DIM, OLIVE),
         '<rect width="%d" height="%d" fill="%s"/>' % (COVER_W, COVER_H, BG),
-        _grain(),
-        '<rect width="%d" height="%d" fill="url(#vig)"/>' % (COVER_W, COVER_H),
-        # 左侧书脊条
-        '<rect x="0" y="0" width="54" height="%d" fill="url(#spine)"/>' % COVER_H,
-        '<path d="M54 0 v%d" stroke="%s" stroke-width="1.2" opacity="0.5"/>' % (COVER_H, BRASS),
-        # 双线内框
-        '<rect x="%d" y="%d" width="%d" height="%d" fill="none" stroke="%s" stroke-width="2.5"/>'
-        % (inner, inner, COVER_W - 2 * inner, COVER_H - 2 * inner, BRASS),
-        '<rect x="%d" y="%d" width="%d" height="%d" fill="none" stroke="%s" stroke-width="1" '
-        'opacity="0.5"/>' % (inner + 12, inner + 12, COVER_W - 2 * inner - 24,
-                             COVER_H - 2 * inner - 24, BRASS),
-        _corner(inner + 2, inner + 2, 1, 1),
-        _corner(COVER_W - inner - 2, inner + 2, -1, 1),
-        _corner(inner + 2, COVER_H - inner - 2, 1, -1),
-        _corner(COVER_W - inner - 2, COVER_H - inner - 2, -1, -1),
         # 顶部品牌行
-        '<text x="%d" y="252" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-        'font-size="24" letter-spacing="6" fill="%s" opacity="0.9">'
-        'GIRLS FRONTLINE 2  : EXILIUM</text>' % (cx, PAPER),
-        '<text x="%d" y="292" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-        'font-size="20" letter-spacing="12" fill="%s" opacity="0.75">少女前线 2 · 追放</text>'
-        % (cx, BRASS),
-        # 瞄准环(置于 kicker 上方,不与文字重叠)
-        _reticle(cx, 560, 104),
-        '<text x="%d" y="772" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-        'font-size="%d" letter-spacing="14" fill="%s">%s</text>'
-        % (cx, k_size, PAPER, esc(kicker)),
-        '<path d="M%d 822 h200 M%d 822 h200" stroke="%s" stroke-width="1.5" opacity="0.85"/>'
-        % (cx - 290, cx + 90, BRASS),
-        '<path d="M%d 810 l12 12 l-12 12 l-12 -12 z" fill="%s"/>' % (cx, BRASS),
+        '<text x="%d" y="300" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
+        'font-size="22" letter-spacing="6" fill="%s" opacity="0.72">'
+        'GIRLS\u2002FRONTLINE\u20022 \u2002:\u2002EXILIUM</text>' % (cx, BRASS),
+        '<text x="%d" y="336" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
+        'font-size="18" letter-spacing="10" fill="%s" opacity="0.5">少女前线 2 · 追放</text>'
+        % (cx, PAPER),
+        # 中部:kicker + 细线 + 标题
+        '<text x="%d" y="780" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
+        'font-size="%d" letter-spacing="12" fill="%s" opacity="0.85">%s</text>'
+        % (cx, k_size, BRASS, esc(kicker)),
+        '<path d="M%d 830 h120 M%d 830 h120" stroke="%s" stroke-width="1.2" opacity="0.55"/>'
+        % (cx - 220, cx + 100, BRASS),
+        '<path d="M%d 824 l6 6 l-6 6 l-6 -6 z" fill="%s" opacity="0.85"/>' % (cx, BRASS),
         '<text x="%d" y="%d" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
         'font-size="%d" fill="%s">%s</text>'
-        % (cx, 962 + size * 0.15, size, PAPER, esc(title)),
+        % (cx, 960 + size * 0.15, size, PAPER, esc(title)),
     ]
     if sub:
         parts.append('<text x="%d" y="%d" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-                     'font-size="%d" letter-spacing="8" fill="%s" opacity="0.8">%s</text>'
-                     % (cx, 1024 + size * 0.15, sub_size, BRASS, esc(sub.upper())))
+                     'font-size="26" letter-spacing="6" fill="%s" opacity="0.7">%s</text>'
+                     % (cx, 1012 + size * 0.15, BRASS, esc(sub.upper())))
     parts += [
+        '<path d="M%d %d h%d" stroke="%s" stroke-width="0.8" opacity="0.35"/>'
+        % (cx - 240, COVER_H - 240, 480, PAPER),
         '<text x="%d" y="%d" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-        'font-size="26" letter-spacing="4" fill="%s" opacity="0.65">%s</text>'
-        % (cx, COVER_H - 190, BRASS, esc(foot1)),
+        'font-size="24" letter-spacing="4" fill="%s" opacity="0.6">%s</text>'
+        % (cx, COVER_H - 190, PAPER, esc(foot1)),
         '<text x="%d" y="%d" text-anchor="middle" font-family="Noto Serif CJK SC, serif" '
-        'font-size="18" letter-spacing="6" fill="%s" opacity="0.4">%s</text>'
-        % (cx, COVER_H - 148, BRASS, esc(foot2)),
+        'font-size="16" letter-spacing="5" fill="%s" opacity="0.38">%s</text>'
+        % (cx, COVER_H - 148, PAPER, esc(foot2)),
         '</svg>',
     ]
     return "\n".join(parts)
