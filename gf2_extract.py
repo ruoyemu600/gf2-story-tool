@@ -88,6 +88,20 @@ def lang_ref(v):
     return None
 
 
+def load_version(table_dir):
+    """Table 目录下的版本号文件(version.txt / bv_version.txt)。
+    数据级回归闸门:换版本时这些数字变化会提示评估。"""
+    out = {}
+    for name, key in (("version.txt", "table_version"), ("bv_version.txt", "bv_version")):
+        p = os.path.join(table_dir, name)
+        if os.path.exists(p):
+            try:
+                out[key] = open(p, encoding="utf-8").read().strip()
+            except OSError:
+                pass
+    return out
+
+
 def load_lang(table_dir):
     ids = {}
     for name in ("LangPackageTableCnBuiltinData.bytes", "LangPackageTableCnData.bytes"):
@@ -361,6 +375,8 @@ def main():
         for fam, gs in corpus["simple"].items()
     }
     report = {
+        **load_version(args.table),
+        "extracted_at": __import__("datetime").date.today().isoformat(),
         "lang_entries": len(lang),
         "avg3d_groups": len(g3d),
         "avg3d_lines": sum(len(v) for v in g3d.values()),

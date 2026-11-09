@@ -30,6 +30,15 @@ python3 gf2_books.py --corpus out/corpus.json --out out/books
 - 名单类组(80% 行 ≤6 字)过滤,不入书
 - 公会战多分支(长城列车/莫科什/暗商)保留分支原文
 
+## 数据版本
+
+- 提取日期:2026-11-09
+- Table `version.txt`:1195672,`bv_version.txt`:1190370(B服当前版本)
+- 结构支持多语言(LangPackageTableEnus/Jajp/Kokr/Zhtc 等),但 **B服仅下载中文**,
+  其他语言表为 8 字节空壳;换服/换语言只需替换对应 LangPackage 表。
+- `out/report.json` 记录上述版本号与各家族行数基准——换版本重跑时对比,
+  行数大幅漂移即需评估(数据级回归闸门)。
+
 ## 已知边界(诚实清单)
 
 - 组 ↔ 章节/角色的归属编码未破译(v1 按 3 位前缀聚卷)

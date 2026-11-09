@@ -1,6 +1,11 @@
 # 卡住的问题(现象 + 已试方案)
 
-## B1 KittyCafe / Kittycafe2 正文链未闭合(T1 遗留)
+## B1 KittyCafe / Kittycafe2 —— ✅ 已解决(P1 注册表匹配,2026-11-09)
+正文行表就是同族的 `KittyCafeContentData` / `Kittycafe2ContentData`
+(f2=对话组,f4=说话人,f5=台词,f6 为副本),两代共 +1459 行已接入。
+以下原始记录保留作背景:
+
+### 原始记录
 - `KittyCafeDialogueData` 13 条,f9=101248 等数字,**不是语言包 id**(lang 无此键);
   `KittyCafeContentByDialogueIdData` 的 f2 是 packed varint(解出 10110101 等 9 位数),
   同样不在语言包 id 集。
@@ -8,19 +13,34 @@
 - 怀疑:正文挂在 `EsCellData`/`TpsshootMissionData` 一类引用表,或这两个 9 位数是
   另一 id 空间。**留给 T9 破译归属时一起处理。**
 
-## B2 LoveAvg / CharacterAvg 正文位置不明(T1 遗留)
+## B2 LoveAvg / CharacterAvg —— ❌ 正文未通(2026-11-09 P1 后)
+P1 结果:ByGunId 的 f2 整值 100% 命中 `LoveAvgData`/`CharacterAvgData`(均为标题/解锁索引表,
+标题在 f5,如「形影不离」「狐狸尾巴1」),以及 `AvgPlotData`(f1 子集)。
+正文仍不在任何已知行表;`AvgPlotData` 的 txtName 对应的演出正文链路未通。
+
+### 原始记录
 - `LoveAvgData`/`CharacterAvgData` 是**解锁条件表**(f4/f8 是"升级至20解锁"类文本),
   f5 是道具 id,不是正文。
 - `LoveAvgByGunIdData`/`CharacterAvgByGunIdData` 只有 f1(枪 id)+ f2 packed,
   packed 解出的值不在语言包。
 - 已试:packed 直查 lang;f1 拆位(不试,禁止拆位)。
 
-## B3 ChessStory 正文位置不明(T1 遗留)
+## B3 ChessStory —— ❌ 正文未通(2026-11-09)
+P1 结果:ChessStory.f3 → `ChessStoryByGroupData` 100%;其 f2 packed 的 796 个"内容 id"
+→ `ChessStageData`(f9/f10 为坐标串,棋局地图),**无文本字段**。
+棋局正文另有归属(类似关卡→台词的链),未定位。
+
+### 原始记录
 - `ChessStoryData` 796 条:f2 是代号("NC-2-10"),f3=101122(段表引用?),pre/next 链完整。
 - `ChessStoryByGroupData` 未 probe 完;f3 指向的表未定位。
 - 下一步:probe ChessStoryByGroupData,按 f3 值全表反查(注意 id 空间重叠误报)。
 
-## B4 LobbyGunStory 正文位置不明(T1 遗留)
+## B4 LobbyGunStory —— ❌ 正文未通(2026-11-09)
+P1 结果:ByGunId.f2 整值 100% 命中 `Avg3DPlotData`(274/272)——宿舍剧情属于 3D 演出系统;
+但 `Avg3DPlotData`(1497 条,txtName 如 M01101)与 `Avg3dContentData` 组(305203…)
+的映射仍缺,正文未接。
+
+### 原始记录
 - `LobbyGunStoryData` 是**目录表**:f4=标题("赞美的艺术·Ⅰ")、f5=pre 链,
   正文在 `LobbyGunStoryByGunIdData`(未 probe)。
 - 下一步:probe LobbyGunStoryByGunIdData 的 f2 packed 是否指向 lang(同 B2 症状)。
