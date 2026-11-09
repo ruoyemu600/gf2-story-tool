@@ -173,7 +173,8 @@ def unique_titles(secs):
 COVER_DIR = None   # main() 里初始化
 
 FAMILY_KICKER_CN = {"lobby": "LOBBY", "adjutant": "ADJUTANT", "lounge": "LOUNGE",
-                    "behavior": "INTERACTION", "darkzone": "DARK ZONE"}
+                    "behavior": "INTERACTION", "darkzone": "DARK ZONE",
+                    "kittycafe": "CAT CAFE", "kittycafe2": "CAT CAFE II"}
 
 
 def _make_cover(vol_label, kicker, title, foot):
@@ -274,7 +275,8 @@ def main():
 
     # ---- 支线家族(T1):每族一卷,按角色分节 ----
     FAM_LABEL = {"lobby": "大厅闲聊", "adjutant": "副官对话", "lounge": "休息室对话",
-                 "behavior": "互动对话", "darkzone": "暗区对话"}
+                 "behavior": "互动对话", "darkzone": "暗区对话",
+                 "kittycafe": "咖啡厅", "kittycafe2": "咖啡厅Ⅱ"}
     for fam, gs in c.get("simple", {}).items():
         if not gs:
             continue

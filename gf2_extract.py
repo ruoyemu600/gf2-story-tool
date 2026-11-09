@@ -215,12 +215,15 @@ def extract_guildwar(table_dir, lang):
 # ---------- 支线家族(T1):结构已验证的「说话人+台词」直出族 ----------
 
 SIMPLE_FAMILIES = {
-    # family: (表, 说话人字段, 台词字段, 选项字段)
-    "lobby": ("LobbyDialogueData.bytes", None, 3, 6),   # f3 台词;f6 选项(植物的长势)
-    "adjutant": ("AdjutantConversationData.bytes", None, 3, None),  # f3 台词;角色从动画名解
-    "lounge": ("LoungeDialogData.bytes", 3, 4, None),   # f3 名 f4 台词
-    "behavior": ("BehaviorDialogData.bytes", 3, 4, None),  # f3 名 f4 台词
-    "darkzone": ("DarkzoneDialogueData.bytes", 5, 6, None),  # f5 名 f6 台词
+    # family: (表, 说话人字段, 台词字段, 选项字段, 组字段)
+    "lobby": ("LobbyDialogueData.bytes", None, 3, 6, None),   # f3 台词;f6 选项
+    "adjutant": ("AdjutantConversationData.bytes", None, 3, None, None),  # f3 台词;角色从动画名解
+    "lounge": ("LoungeDialogData.bytes", 3, 4, None, None),   # f3 名 f4 台词
+    "behavior": ("BehaviorDialogData.bytes", 3, 4, None, None),  # f3 名 f4 台词
+    "darkzone": ("DarkzoneDialogueData.bytes", 5, 6, None, None),  # f5 名 f6 台词
+    # P1 结果:咖啡厅正文行表,组=f2,说话人=f4(可为 lang 或裸文本),台词=f5
+    "kittycafe": ("KittyCafeContentData.bytes", 4, 5, None, 2),
+    "kittycafe2": ("Kittycafe2ContentData.bytes", 4, 5, None, 2),
 }
 
 
@@ -254,7 +257,7 @@ def extract_simple_families(table_dir, lang):
     """返回 {family: [{"group": 组名, "lines": [...]}]}。
     分组:lounge/behavior/adjutant 按说话人;lobby/darkzone 整族一组的对话串。"""
     out = {}
-    for fam, (tname, spk_f, txt_f, opt_f) in SIMPLE_FAMILIES.items():
+    for fam, (tname, spk_f, txt_f, opt_f, grp_f) in SIMPLE_FAMILIES.items():
         per_group = defaultdict(list)
         for r in flat_records(table_dir, tname):
             rid = r.get(1)
@@ -280,9 +283,12 @@ def extract_simple_families(table_dir, lang):
                 opt = _text_field(r, opt_f, lang)
                 if opt:
                     _, entry["option"] = clean_text(opt)
-            # 分角色族按说话人分;无名行归「旁白」组(不猜归属)
+            # 分角色族按说话人分;有组字段的按对话组分;其余整族一组
             if fam in ("lounge", "behavior", "adjutant"):
                 gname = speaker or "旁白"
+            elif grp_f is not None:
+                gid = r.get(grp_f)
+                gname = "%s-%s" % (fam, gid if isinstance(gid, int) else "?")
             else:
                 gname = fam
             per_group[gname].append(entry)
