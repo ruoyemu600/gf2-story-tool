@@ -34,3 +34,24 @@
 - EsAvgPlotData:f2/f3 是 `AA01115…` 资源名,无文本字段。
 - FitnessgameAvgData 仅 2 条,f3 是标题("L12343")——太小,不够成书。
 - CharacterVoiceData 是语音触发矩阵(voice id),无文本。
+
+## B7 T9/T10 依赖的剧本配置不在可达范围(T9/T10 阻塞,已穷尽本地手段)
+**目标**:演出组(305203…)↔章节/关卡的映射 + 逐句说话人。
+
+**已穷尽的尝试(2026-11-09)**:
+1. Table 全表扫描「字段值=已知角色名」→ 只有 DialoguePageData 自身(宿舍)命中,
+   无主线说话人表。
+2. Avg3DPlotData(1497 条, txtName 为 M03003 格式)、AvgData 与演出组前缀
+   (100101/305203…)全字段比对 → 零命中,映射不在 Table。
+3. AssetBundles_Android:6 个样本 bundle 全部为美术(Texture2D/Mesh/Shader);
+   文件名是内容哈希,**内部 AssetBundle m_Name 也是哈希**(de5fc524…bundle)。
+4. Addressables catalog:LocalCache/Data 下无 catalog 文件 —— 清单在服务端/APK 内。
+5. 社区无公开带说话人剧情数据源(GitHub 搜索:工具类为主)。
+
+**结论**:剧本配置(逐句 speaker + 组归属)只存在于加密 bundle 中,
+定位它需要 catalog(PC 客户端可获得)或全量扫描 44GB(手机端不可行)。
+
+**后续可行路径(需要 PC 环境)**:
+- PC 版客户端(国际服)的 catalog 在安装目录,拿到后可精确列出 avg_*.bundle 并只搬那几个
+- 或 PC 上跑 GF2AssetBundleDecryption + 全量解包(44GB 在 PC 上可接受)
+- USM 字幕提取(exilium-tools 的 subtitle_extractor)只能覆盖 20 个过场视频,覆盖面小

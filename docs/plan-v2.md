@@ -150,5 +150,5 @@
 | T7 公会战复查 | ✅ 完成 | 109 段为纯演出视频(f4=Assets 路径),输出占位行;235->344 行 |
 | T8 主线骨架 | ✅ 完成 | out/outline.json:296 章 / 1669 关拓扑序 |
 | T6 文本池分拣 | ⏸ 样本完成,等确认 | >=120 字 63 条,叙事候选 26 条 -> out/email_candidates.tsv |
-| T9 归属破译 | ⏳ 等 AssetBundles | — |
-| T10 说话人补全 | ⏳ 等 AssetBundles | — |
+| T9 归属破译 | ⛔ 阻塞(见 blocked.md B7) | Table 内无映射;catalog 不在客户端;bundle 双哈希 |
+| T10 说话人补全 | ⛔ 阻塞(见 blocked.md B7) | 主线无说话人表;剧本配置仅在 44GB bundle 内 |
