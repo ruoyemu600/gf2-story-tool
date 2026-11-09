@@ -102,3 +102,26 @@ ChessStoryByGroupData.f2 的 796 个内容 id:
 - 对 Avg3dContent **行 id 集**命中 0/796 = 0.0%
 判定:棋局为纯战棋玩法,**无剧情台词**;ChessStageData 的坐标数据与
 ChessStoryData 的代号(pre/next)不需要接入成书。B3 关闭(无内容可提取)。
+
+## B11 资源索引链彻底查空(2026-11-09 APK+catalog 轮)
+**新证据(用户导出 APK + 热更目录三件套)**:
+
+1. **APK 内 catalog**(`assets/AssetBundles_Android/catalog_main_9889.bin`,13MB):
+   5,555 个 bundle 哈希名 + 395 个 Assets 路径;6 个热更样本哈希**全不在**——
+   是安装时的初始版本。
+2. **热更目录 `Version_CopyAsset.txt`**(1.28MB):当前版本**完整文件清单**,
+   9,777 bundle + 4,324 .gf,格式 `{0}/<hash>.bundle#<MD5>#<大小>#<版本>`;
+   6 个样本全部命中(版本 26419/27079,与 GameConfig 的
+   CacheResVersion 4.0.5143.9889.28656 对齐)。**只有哈希,无资源名。**
+3. **热更目录 `catalog_main_28656.bin`**(58MB,与 CacheResVersion 版本号一致):
+   43,679 个 bundle 名、833 个 Assets 路径(全为 Scene/玩法资源);
+   **剧情资源名(M01101 类)零出现**,Avg/avg/avg_ 全 0。
+4. **Table 全表搜 6 个样本哈希:0 处**;搜 32 位 hex 字符串字段:0 处。
+5. `Version_Ex1.bin`(207KB):无任何可打印资源名(加密/压缩)。
+
+**结论**:GF2 使用自研资源加载系统。剧情 bundle 按资源名(M01101 等)在运行时加载,
+「资源名→bundle 哈希」的索引**不在 APK、不在 catalog、不在 CopyAsset、不在 Table**——
+只可能在 IL2CPP 代码逻辑中或服务端。手机端此路终点。
+**残余可能**:对 9,777 个 bundle 做内容抽样(解包看 TextAsset m_Name),
+但即使命中,全量定位仍需处理 44GB——手机端不可行,**不再尝试**。
+**PC 端仍是唯一解**:全量解包 44GB 后按 TextAsset 名索引。

@@ -14,3 +14,4 @@ __pycache__/
 # 语言包 dump 是从游戏 Table 生成的产物,不入库
 lang_cn.jsonl
 *.jsonl
+work/
