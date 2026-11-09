@@ -62,14 +62,12 @@ def group_title(lines, limit=18):
 
 def section_txt(title, lines):
     out = ["", "◆ %s" % title, ""]
-    prev_spk = None
     for l in lines:
         spk, t = l.get("speaker"), l["text"]
-        if spk:
-            out.append("「%s」%s" % (spk, t))
-        else:
-            out.append("　　%s" % t)
-        prev_spk = spk
+        line = ("「%s」%s" % (spk, t)) if spk else ("　　%s" % t)
+        if l.get("option"):
+            line += "　〔选项：%s〕" % l["option"]
+        out.append(line)
     return "\n".join(out)
 
 
@@ -81,10 +79,11 @@ def section_xhtml(title, lines):
              "<h2>%s</h2>" % escape(title)]
     for l in lines:
         spk, t = l.get("speaker"), l["text"]
+        opt = ('　<span class="opt">〔选项：%s〕</span>' % escape(l["option"])) if l.get("option") else ""
         if spk:
-            parts.append('<p class="dlg"><span class="spk">%s:</span>%s</p>' % (escape(spk), escape(t)))
+            parts.append('<p class="dlg"><span class="spk">%s:</span>%s%s</p>' % (escape(spk), escape(t), opt))
         else:
-            parts.append('<p class="narr">%s</p>' % escape(t))
+            parts.append('<p class="narr">%s%s</p>' % (escape(t), opt))
     parts.append("</body></html>")
     return "\n".join(parts)
 
@@ -189,6 +188,16 @@ def main():
     for ch, ss in sorted(by_ch.items()):
         secs = [(s["title"] or ("篇 %d" % s["id"]), s["lines"]) for s in ss]
         vols.append(write_volume(args.out, "公会战剧情 第%d期(%d 篇)" % (ch, len(ss)), secs, not args.no_epub))
+
+    # ---- 支线家族(T1):每族一卷,按角色分节 ----
+    FAM_LABEL = {"lobby": "大厅闲聊", "adjutant": "副官对话", "lounge": "休息室对话",
+                 "behavior": "互动对话", "darkzone": "暗区对话"}
+    for fam, gs in c.get("simple", {}).items():
+        if not gs:
+            continue
+        secs = [(g["group"], g["lines"]) for g in gs]
+        label = "%s(%d 节)" % (FAM_LABEL.get(fam, fam), len(secs))
+        vols.append(write_volume(args.out, label, secs, not args.no_epub))
 
     print("成卷 %d,输出目录 %s" % (len(vols), args.out))
 

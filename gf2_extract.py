@@ -38,7 +38,7 @@ from gf2_table import read_table, parse_fields, read_varint  # noqa: E402
 
 TAG_RE = re.compile(r"</?(?:color|b|i|u|size|sprite[^>]*)[^>]*>")
 SPEAKER_TAG_RE = re.compile(r"^\s*<color=[^>]*>([^<]{1,20}?)[:：]\s*</color>\s*")
-SPEAKER_PLAIN_RE = re.compile(r"^([^\s，。！？""]{1,12}?)[:：]\s*")
+SPEAKER_PLAIN_RE = re.compile(r"^([^\s，。！？“”'\"：:]{1,12}?)[:：]\s*")
 
 
 def clean_text(raw):
@@ -77,10 +77,14 @@ def unpack_packed(buf):
 
 
 def lang_ref(v):
+    """msg{f1: lang_id} -> id;非 msg 的 bytes(头像名/图路径等)安全返回 None。"""
     if isinstance(v, (bytes, bytearray)):
-        for f, w, x in parse_fields(v):
-            if f == 1 and w == 0:
-                return x
+        try:
+            for f, w, x in parse_fields(v):
+                if f == 1 and w == 0:
+                    return x
+        except Exception:
+            return None
     return None
 
 
@@ -188,6 +192,87 @@ def extract_guildwar(table_dir, lang):
     return stories
 
 
+# ---------- 支线家族(T1):结构已验证的「说话人+台词」直出族 ----------
+
+SIMPLE_FAMILIES = {
+    # family: (表, 说话人字段, 台词字段, 选项字段)
+    "lobby": ("LobbyDialogueData.bytes", None, 3, 6),   # f3 台词;f6 选项(植物的长势)
+    "adjutant": ("AdjutantConversationData.bytes", None, 3, None),  # f3 台词;角色从动画名解
+    "lounge": ("LoungeDialogData.bytes", 3, 4, None),   # f3 名 f4 台词
+    "behavior": ("BehaviorDialogData.bytes", 3, 4, None),  # f3 名 f4 台词
+    "darkzone": ("DarkzoneDialogueData.bytes", 5, 6, None),  # f5 名 f6 台词
+}
+
+
+def _char_from_anim(anim):
+    """c_Charolic_idle_to_apathy -> Charolic"""
+    if not anim:
+        return ""
+    m = re.match(r"^c_([A-Za-z0-9]+)_", anim)
+    return m.group(1) if m else ""
+
+
+def _text_field(r, f, lang):
+    """字段 -> 文本:先按 lang 引用解,再尝试内嵌 utf-8。"""
+    if f is None:
+        return ""
+    lr = lang_ref(r.get(f))
+    if lr is not None and lang.get(lr):
+        return lang[lr]
+    v = r.get(f)
+    if isinstance(v, (bytes, bytearray)):
+        try:
+            s = v.decode("utf-8")
+            if s and all(31 < ord(c) or c in "\n\t" for c in s):
+                return s
+        except UnicodeDecodeError:
+            pass
+    return ""
+
+
+def extract_simple_families(table_dir, lang):
+    """返回 {family: [{"group": 组名, "lines": [...]}]}。
+    分组:lounge/behavior/adjutant 按说话人;lobby/darkzone 整族一组的对话串。"""
+    out = {}
+    for fam, (tname, spk_f, txt_f, opt_f) in SIMPLE_FAMILIES.items():
+        per_group = defaultdict(list)
+        for r in flat_records(table_dir, tname):
+            rid = r.get(1)
+            if not isinstance(rid, int):
+                continue
+            text = _text_field(r, txt_f, lang)
+            speaker = _text_field(r, spk_f, lang)
+            if fam == "adjutant" and not speaker:
+                for k in (4, 5, 6):
+                    v = r.get(k)
+                    if isinstance(v, (bytes, bytearray)):
+                        try:
+                            speaker = _char_from_anim(v.decode("utf-8"))
+                        except UnicodeDecodeError:
+                            pass
+                        if speaker:
+                            break
+            if not text:
+                continue
+            _, text = clean_text(text)
+            entry = {"id": rid, "speaker": speaker or None, "text": text}
+            if opt_f:
+                opt = _text_field(r, opt_f, lang)
+                if opt:
+                    _, entry["option"] = clean_text(opt)
+            # 分角色族按说话人分;无名行归「旁白」组(不猜归属)
+            if fam in ("lounge", "behavior", "adjutant"):
+                gname = speaker or "旁白"
+            else:
+                gname = fam
+            per_group[gname].append(entry)
+        out[fam] = [
+            {"group": g, "lines": sorted(rows, key=lambda x: x["id"])}
+            for g, rows in sorted(per_group.items())
+        ]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--table", required=True)
@@ -208,10 +293,15 @@ def main():
     ]}
     gw = extract_guildwar(args.table, lang)
     corpus["guildwar"] = {"stories": gw}
+    corpus["simple"] = extract_simple_families(args.table, lang)
 
     with open(os.path.join(args.out, "corpus.json"), "w", encoding="utf-8") as fh:
         json.dump(corpus, fh, ensure_ascii=False, indent=1)
 
+    simple_stats = {
+        fam: {"groups": len(gs), "lines": sum(len(g["lines"]) for g in gs)}
+        for fam, gs in corpus["simple"].items()
+    }
     report = {
         "lang_entries": len(lang),
         "avg3d_groups": len(g3d),
@@ -220,6 +310,8 @@ def main():
         "dialogue_lines": sum(len(v) for v in dpages.values()),
         "guildwar_stories": len(gw),
         "guildwar_lines": sum(len(s["lines"]) for s in gw),
+        "simple": simple_stats,
+        "simple_lines_total": sum(v["lines"] for v in simple_stats.values()),
     }
     with open(os.path.join(args.out, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
