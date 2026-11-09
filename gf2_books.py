@@ -94,8 +94,8 @@ CSS = ("body{font-family:serif;line-height:1.7;margin:5%%}"
        ".dlg{margin:.3em 0} .spk{font-weight:bold}")
 
 
-def write_epub(path, vol_title, sections):
-    """sections: [(title, xhtml_body)]"""
+def write_epub(path, vol_title, sections, cover_png=None):
+    """sections: [(title, xhtml_body)];cover_png: 封面图路径,None 则无封面。"""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with zipfile.ZipFile(path, "w") as z:
         z.writestr(zipfile.ZipInfo("mimetype"), "application/epub+zip", zipfile.ZIP_STORED)
@@ -110,6 +110,19 @@ def write_epub(path, vol_title, sections):
                                         'xmlns:epub="http://www.idpf.org/2007/ops">',
                                         "<head><title>%s</title></head><body>"
                                         '<nav epub:type="toc"><h1>%s</h1><ol>' % (escape(vol_title), escape(vol_title))]
+        if cover_png and os.path.exists(cover_png):
+            with open(cover_png, "rb") as fh:
+                z.writestr("OEBPS/cover.jpg", fh.read())
+            z.writestr("OEBPS/cover.xhtml",
+                       '<?xml version="1.0" encoding="utf-8"?>'
+                       '<html xmlns="http://www.w3.org/1999/xhtml"><head>'
+                       '<title>封面</title><style>body{margin:0;padding:0}'
+                       'img{width:100%;height:auto}</style></head>'
+                       '<body><img src="cover.jpg" alt="封面"/></body></html>')
+            manifest.append('<item id="cover-img" href="cover.jpg" media-type="image/jpeg" '
+                            'properties="cover-image"/>')
+            manifest.append('<item id="coverpage" href="cover.xhtml" media-type="application/xhtml+xml"/>')
+            spine.append('<itemref idref="coverpage"/>')
         for i, (title, body) in enumerate(sections, 1):
             fid = "c%04d" % i
             z.writestr("OEBPS/%s.xhtml" % fid, section_xhtml(title, body))
@@ -121,6 +134,8 @@ def write_epub(path, vol_title, sections):
         manifest.append('<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" '
                         'properties="nav"/>')
         manifest.append('<item id="css" href="style.css" media-type="text/css"/>')
+        guide = ('<guide><reference type="cover" title="封面" href="cover.xhtml"/></guide>'
+                 if cover_png and os.path.exists(cover_png) else "")
         opf = ['<?xml version="1.0" encoding="utf-8"?>',
                '<package xmlns="http://www.idpf.org/2007/opf" version="3.0" '
                'unique-identifier="bid">',
@@ -128,8 +143,9 @@ def write_epub(path, vol_title, sections):
                '<dc:identifier id="bid">urn:uuid:gf2-%s</dc:identifier>' % safe_name(vol_title),
                "<dc:title>%s</dc:title>" % escape(vol_title),
                "<dc:language>zh-CN</dc:language>",
+               '<meta name="cover" content="cover-img"/>' if cover_png and os.path.exists(cover_png) else "",
                "</metadata><manifest>%s</manifest>"
-               "<spine>%s</spine></package>" % ("".join(manifest), "".join(spine))]
+               "<spine>%s</spine>%s</package>" % ("".join(manifest), "".join(spine), guide)]
         z.writestr("OEBPS/content.opf", "\n".join(opf))
 
 
@@ -154,7 +170,29 @@ def unique_titles(secs):
     return out
 
 
-def write_volume(out_dir, vol_label, sections, epub=True):
+COVER_DIR = None   # main() 里初始化
+
+FAMILY_KICKER_CN = {"lobby": "LOBBY", "adjutant": "ADJUTANT", "lounge": "LOUNGE",
+                    "behavior": "INTERACTION", "darkzone": "DARK ZONE"}
+
+
+def _make_cover(vol_label, kicker, title, foot):
+    """按卷生成封面(缓存在 out/books/covers/);失败返回 None 不影响出书。"""
+    if COVER_DIR is None:
+        return None
+    try:
+        import gf2_cover as GC
+    except Exception:
+        return None
+    path = os.path.join(COVER_DIR, safe_name("%s_%s" % (kicker, vol_label)) + ".jpg")
+    if not os.path.exists(path):
+        got = GC.make_cover(path, kicker, title, "", foot)
+        if not got:
+            return None
+    return path if os.path.exists(path) else None
+
+
+def write_volume(out_dir, vol_label, sections, epub=True, cover_spec=None):
     sections = unique_titles(sections)
     txt = ["# %s" % vol_label]
     for title, lines in sections:
@@ -163,8 +201,11 @@ def write_volume(out_dir, vol_label, sections, epub=True):
     with open(p, "w", encoding="utf-8") as fh:
         fh.write("\n".join(txt))
     if epub:
+        cover = None
+        if cover_spec:
+            cover = _make_cover(vol_label, *cover_spec)
         write_epub(os.path.join(out_dir, "epub", safe_name(vol_label) + ".epub"),
-                   vol_label, [(t, l) for t, l in sections])
+                   vol_label, [(t, l) for t, l in sections], cover_png=cover)
     return p
 
 
@@ -175,6 +216,11 @@ def main():
     ap.add_argument("--no-epub", action="store_true")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    global COVER_DIR
+    COVER_DIR = os.path.join(args.out, "covers")
+    os.makedirs(COVER_DIR, exist_ok=True)
+    # 防相册扫描(limbus 踩过:封面全进相册)
+    open(os.path.join(COVER_DIR, ".nomedia"), "w").close()
     c = json.load(open(args.corpus, encoding="utf-8"))
     vols = []
 
@@ -189,7 +235,8 @@ def main():
     for prefix, gs in sorted(clusters.items(), key=lambda x: int(x[0])):
         secs = [(group_title(g["lines"]), g["lines"]) for g in gs]
         label = "演出剧情 %s(组%s-%d)" % (prefix, prefix, len(gs))
-        vols.append(write_volume(args.out, label, secs, not args.no_epub))
+        vols.append(write_volume(args.out, label, secs, not args.no_epub,
+                                 cover_spec=("MAIN STORY", "演出剧情", "组 %s · %d 节" % (prefix, len(gs)))))
 
     # ---- 宿舍对话:按角色(头像) ----
     by_avatar = defaultdict(list)
@@ -201,7 +248,8 @@ def main():
     for av, gs in sorted(by_avatar.items()):
         name = re.sub(r"^Avatar_Head_|SR\d+$|SSR\d+$", "", av) if av != "未知" else "未知"
         secs = [(group_title(g["lines"]), g["lines"]) for g in gs]
-        vols.append(write_volume(args.out, "宿舍对话 %s(%d 组)" % (name, len(gs)), secs, not args.no_epub))
+        vols.append(write_volume(args.out, "宿舍对话 %s(%d 组)" % (name, len(gs)), secs, not args.no_epub,
+                                 cover_spec=("DORMITORY", name, "%s · %d 节" % (name, len(gs)))))
 
     # ---- 公会战 ----
     by_ch = defaultdict(list)
@@ -209,7 +257,8 @@ def main():
         by_ch[s["chapter_seq"] or 0].append(s)
     for ch, ss in sorted(by_ch.items()):
         secs = [(s["title"] or ("篇 %d" % s["id"]), s["lines"]) for s in ss]
-        vols.append(write_volume(args.out, "公会战剧情 第%d期(%d 篇)" % (ch, len(ss)), secs, not args.no_epub))
+        vols.append(write_volume(args.out, "公会战剧情 第%d期(%d 篇)" % (ch, len(ss)), secs, not args.no_epub,
+                                 cover_spec=("GUILD WAR", "第 %d 期" % ch, "%d 篇 · 多分支" % len(ss))))
 
     # ---- 支线家族(T1):每族一卷,按角色分节 ----
     FAM_LABEL = {"lobby": "大厅闲聊", "adjutant": "副官对话", "lounge": "休息室对话",
@@ -218,8 +267,10 @@ def main():
         if not gs:
             continue
         secs = [(g["group"], g["lines"]) for g in gs]
-        label = "%s(%d 节)" % (FAM_LABEL.get(fam, fam), len(secs))
-        vols.append(write_volume(args.out, label, secs, not args.no_epub))
+        cname = FAM_LABEL.get(fam, fam)
+        label = "%s(%d 节)" % (cname, len(secs))
+        vols.append(write_volume(args.out, label, secs, not args.no_epub,
+                                 cover_spec=(FAMILY_KICKER_CN.get(fam, "STORY"), cname, "%d 节" % len(secs))))
 
     print("成卷 %d,输出目录 %s" % (len(vols), args.out))
 
