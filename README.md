@@ -4,6 +4,10 @@
 
 **本仓库只含代码。** 数据(游戏 Table、提取产物)不入库,见 NOTICE。
 
+> 📖 **整理好的剧情文本(224 卷 EPUB/TXT)在单独的仓库**:
+> [gf2-story-text](https://github.com/ruoyemu600/gf2-story-text)
+> (版权归散爆网络 / MICA Team,仅供学习研究,详见该仓库的 DISCLAIMER)
+
 ## 数据形态(已验证)
 
 游戏热更资源 `files/LocalCache/Data/Table/*.bytes`:
